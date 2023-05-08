@@ -62,6 +62,50 @@ public class CellularAutomations {
 
     }
 
+    static void updateNeighbors(QuadTree node) {
+        if (node == null)
+            return;
+        for (Point point : node.points) {
+            Boundary boundary = new Boundary(point, 1.5f, 1.5f);
+            ArrayList<Point> neighbors = node.query(boundary);
+            int liveNeighbors = 0;
+            for (Point neighbor : neighbors) {
+                Cell cell = (Cell) neighbor.data;
+                if (cell.isAlive)
+                    liveNeighbors++;
+            }
+            Cell cell = (Cell) point.data;
+            cell.liveNeighbors = liveNeighbors;
+            point.data = cell;
+        }
+        if (node.divided) {
+            updateNeighbors(node.northeast);
+            updateNeighbors(node.northwest);
+            updateNeighbors(node.southeast);
+            updateNeighbors(node.southwest);
+        }
+    }
+
+    static void updateState(QuadTree node) {
+        if (node == null)
+            return;
+        for (Point point : node.points) {
+            Cell cell = (Cell) point.data;
+            if (cell.isAlive) {
+                if (cell.liveNeighbors < 2 || cell.liveNeighbors > 3)
+                    cell.isAlive = false;
+            } else if (cell.liveNeighbors == 3)
+                cell.isAlive = true;
+            point.data = cell;
+        }
+        if (node.divided) {
+            updateState(node.northeast);
+            updateState(node.northwest);
+            updateState(node.southeast);
+            updateState(node.southwest);
+        }
+    }
+
     static class QuadTree {
         ArrayList<Point> points;
         int capacity;
@@ -134,44 +178,6 @@ public class CellularAutomations {
             }
             return found;
         }
-        void updateNeighbors() {
-            for (Point point : this.points) {
-                Boundary boundary = new Boundary(point, 1.5f, 1.5f);
-                ArrayList<Point> neighbors = this.query(boundary);
-                int liveNeighbors = 0;
-                for (Point neighbor : neighbors) {
-                    Cell cell = (Cell) neighbor.data;
-                    if (cell.isAlive)
-                        liveNeighbors++;
-                }
-                Cell cell = (Cell) point.data;
-                cell.liveNeighbors = liveNeighbors;
-                point.data = cell;
-            }
-            if (this.divided) {
-                this.northeast.updateNeighbors();
-                this.northwest.updateNeighbors();
-                this.southeast.updateNeighbors();
-                this.southwest.updateNeighbors();
-            }
-        }
 
-        void updateState() {
-            for (Point point : this.points) {
-                Cell cell = (Cell) point.data;
-                if (cell.isAlive) {
-                    if (cell.liveNeighbors < 2 || cell.liveNeighbors > 3)
-                        cell.isAlive = false;
-                } else if (cell.liveNeighbors == 3)
-                    cell.isAlive = true;
-                point.data = cell;
-            }
-            if (this.divided) {
-                this.northeast.updateState();
-                this.northwest.updateState();
-                this.southeast.updateState();
-                this.southwest.updateState();
-            }
-        }
     }
 }
