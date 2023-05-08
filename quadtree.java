@@ -114,8 +114,6 @@ public class CellularAutomations {
         QuadTree northeast;
         QuadTree southwest;
         QuadTree southeast;
-        int generation = 0;
-        int liveCells = 0;
 
         QuadTree(Boundary boundary, int capacity) {
             this.boundary = boundary;
