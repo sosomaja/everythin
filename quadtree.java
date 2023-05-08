@@ -6,9 +6,11 @@ public class CellularAutomations {
         float y;
         Object data;
         int liveNeighbors = 0;
+
         public String toString() {
             return String.format("(%.3f,%.3f)", this.x, this.y);
         }
+
         Point(float x, float y, Object data) {
             this.x = x;
             this.y = y;
@@ -30,6 +32,11 @@ public class CellularAutomations {
         float halfWidth;
         float halfHeight;
 
+        public String toString() {
+            return String.format("x:(%.3f,%.3f) y:(%.3f,%.3f)", this.center.x - halfWidth, this.center.x + halfWidth,
+                    this.center.y - halfHeight, this.center.y + halfHeight);
+        }
+
         Boundary(Point center, float halfWidth, float halfHeight) {
             this.center = center;
             this.halfWidth = halfWidth;
@@ -42,15 +49,18 @@ public class CellularAutomations {
         }
 
         boolean intersects(Boundary other) {
-            if (this.center.x < other.center.x + other.halfWidth &&
-                    this.center.x + this.halfWidth > other.center.x &&
-                    this.center.y < other.center.y + other.halfHeight &&
-                    this.center.y + this.halfHeight > other.center.y)
-                return true;
-            return false;
+            if (this.center.x - this.halfWidth > other.center.x + other.halfWidth ||
+                    this.center.x + this.halfWidth < other.center.x - other.halfWidth ||
+                    this.center.y - this.halfHeight > other.center.y + other.halfHeight ||
+                    this.center.y + this.halfHeight < other.center.y - other.halfHeight)
+                return false;
+            return true;
         }
     }
 
+    public static void main(String[] args) {
+
+    }
 
     static class QuadTree {
         ArrayList<Point> points;
@@ -91,7 +101,7 @@ public class CellularAutomations {
         boolean insert(Point p) {
             if (!this.boundary.contains(p))
                 return false;
-            if (this.points.size() <= this.capacity) {
+            if (this.points.size() < this.capacity) {
                 this.points.add(p);
                 return true;
             } else if (!this.divided) {
@@ -108,11 +118,11 @@ public class CellularAutomations {
             return false;
         }
 
-
         ArrayList<Point> query(Boundary range) {
             ArrayList<Point> found = new ArrayList<Point>();
-            if (!this.boundary.intersects(range))
+            if (!this.boundary.intersects(range)) {
                 return found;
+            }
             for (Point point : this.points)
                 if (range.contains(point))
                     found.add(point);
@@ -124,7 +134,44 @@ public class CellularAutomations {
             }
             return found;
         }
+        void updateNeighbors() {
+            for (Point point : this.points) {
+                Boundary boundary = new Boundary(point, 1.5f, 1.5f);
+                ArrayList<Point> neighbors = this.query(boundary);
+                int liveNeighbors = 0;
+                for (Point neighbor : neighbors) {
+                    Cell cell = (Cell) neighbor.data;
+                    if (cell.isAlive)
+                        liveNeighbors++;
+                }
+                Cell cell = (Cell) point.data;
+                cell.liveNeighbors = liveNeighbors;
+                point.data = cell;
+            }
+            if (this.divided) {
+                this.northeast.updateNeighbors();
+                this.northwest.updateNeighbors();
+                this.southeast.updateNeighbors();
+                this.southwest.updateNeighbors();
+            }
+        }
 
+        void updateState() {
+            for (Point point : this.points) {
+                Cell cell = (Cell) point.data;
+                if (cell.isAlive) {
+                    if (cell.liveNeighbors < 2 || cell.liveNeighbors > 3)
+                        cell.isAlive = false;
+                } else if (cell.liveNeighbors == 3)
+                    cell.isAlive = true;
+                point.data = cell;
+            }
+            if (this.divided) {
+                this.northeast.updateState();
+                this.northwest.updateState();
+                this.southeast.updateState();
+                this.southwest.updateState();
+            }
+        }
     }
-
 }
